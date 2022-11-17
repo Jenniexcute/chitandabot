@@ -1,6 +1,6 @@
 /**
   * Created by Irfan
-  * Contact me on WhatsApp wa.me/6285791458996
+  * Contact me on WhatsApp wa.me/628990999699
   * Follow me on Instagram @irfann._x
   * If you want to buy an updated script that is not encrypted, please WhatsApp me
 */
@@ -240,8 +240,13 @@ module.exports = async(conn, msg, m, setting, store, welcome) => {
 		const isQuotedSticker = isQuotedMsg ? content.includes('stickerMessage') ? true : false : false
 
 		// Auto Read & Presence Online
-		conn.sendReadReceipt(from, sender, [msg.key.id])
+		conn.readMessages([msg.key])
 		conn.sendPresenceUpdate('available', from)
+		
+		if (conn.mode === 'self') {
+                  if (!isOwner && !fromMe) return
+                  if (fromMe && isBaileys) return
+                }
 		
 		// Auto Registrasi
 		if (isCmd && !isUser) {
@@ -618,6 +623,16 @@ module.exports = async(conn, msg, m, setting, store, welcome) => {
 				  reply(`Kirim/balas gambar dengan caption ${command} untuk mengubah foto profil bot`)
 				}
 				break
+			case prefix+'self':
+                           if (!isOwner && !fromMe) return reply(mess.OnlyOwner)
+                           conn.mode = 'self'
+                           reply(`Berhasil berubah ke mode Self!`)
+                           break
+			case prefix+'public': case prefix+'publik':
+                           if (!isOwner && !fromMe) return reply(mess.OnlyOwner)
+                           conn.mode = 'public'
+			reply(`Berhasil berubah ke mode Public!`)
+                   break
 			case prefix+'addprem':
                 if (!isOwner) return reply(mess.OnlyOwner)
                 if (args.length < 2) return reply(`Penggunaan :\n*${prefix}addprem* @tag waktu\n*${prefix}addprem* nomor waktu\n\nContoh : ${command} @tag 30d`)

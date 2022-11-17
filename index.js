@@ -1,6 +1,6 @@
 /**
   * Edit features in './message/msg.js'
-  * Contact me on WhatsApp wa.me/6285791458996
+  * Contact me on WhatsApp wa.me/628990999600
   * Follow https://github.com/rtwone
   * If you want to buy an updated script that is not encrypted, please WhatsApp me
 */
@@ -13,7 +13,7 @@ const {
 	DisconnectReason,
 	AnyMessageContent,
         makeInMemoryStore,
-	useSingleFileAuthState,
+	useMultiFileAuthState,
 	delay
 } = require("@adiwajshing/baileys")
 const figlet = require("figlet");
@@ -28,7 +28,6 @@ const { color, mylog, infolog } = require("./lib/color");
 const time = moment(new Date()).format('HH:mm:ss DD/MM/YYYY')
 let setting = JSON.parse(fs.readFileSync('./config.json'));
 let session = `./${setting.sessionName}.json`
-const { state, saveState } = useSingleFileAuthState(session)
 let welcome = JSON.parse(fs.readFileSync('./database/welcome.json'));
 
 function title() {
@@ -76,12 +75,19 @@ const reconnect = new Spinner(chalk.redBright(` Reconnecting WhatsApp Bot`))
 
 const store = makeInMemoryStore({ logger: logg().child({ level: 'fatal', stream: 'store' }) })
 
+async function fanStart() {
 const connectToWhatsApp = async () => {
+	const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys')
 	const conn = makeWASocket({
             printQRInTerminal: true,
             logger: logg({ level: 'fatal' }),
             auth: state,
-            browser: ["Chitanda Eru Multi Device", "Safari", "3.0"]
+            browser: ["Chitanda Eru Multi Device", "Safari", "3.0"],
+	    getMessage: async key => {
+              return {
+                
+              }
+          }
         })
 	title()
         store.bind(conn.ev)
@@ -97,6 +103,7 @@ const connectToWhatsApp = async () => {
 	conn.multi = true
 	conn.nopref = false
 	conn.prefa = 'anjing'
+	conn.mode = 'public'
 	conn.ev.on('messages.upsert', async m => {
 		if (!m.messages) return;
 		var msg = m.messages[0]
@@ -105,18 +112,15 @@ const connectToWhatsApp = async () => {
 		require('./message/msg')(conn, msg, m, setting, store, welcome)
 	})
 	conn.ev.on('connection.update', (update) => {
-		const { connection, lastDisconnect } = update
-		if (connection === 'close') {
-			status.stop()
-			reconnect.stop()
-			starting.stop()
-			console.log(mylog('Server Ready ✓'))
-			lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut 
-			? connectToWhatsApp()
-			: console.log(mylog('Wa web terlogout...'))
-		}
-	})
-	conn.ev.on('creds.update', () => saveState)
+          if (global.qr !== update.qr) {
+           global.qr = update.qr
+          }
+          const { connection, lastDisconnect } = update
+            if (connection === 'close') {
+                lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut ? connectToWhatsApp() : console.log('connection logged out...')
+            }
+        })
+	conn.ev.on('creds.update', await saveCreds)
 	
         conn.ev.on('group-participants.update', async (data) => {
           const isWelcome = welcome.includes(data.id) ? true : false
@@ -147,3 +151,6 @@ const connectToWhatsApp = async () => {
 
 connectToWhatsApp()
 .catch(err => console.log(err))
+}
+
+fanStart()
